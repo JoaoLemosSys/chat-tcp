@@ -14,12 +14,7 @@ class Server:
         self.public_keys = {}
         self.nicknames = {}
 
-    def broadcast(self, sender, message):
-        for client in self.clients:
-            if client != sender:
-                client.send(message)
-
-    def handle_client(self, client):
+    def handle_client(self, client, nickname_client):
         while True:
             # Receber o tamanho da mensagem criptografada em bytes
             encrypted_message_size_data = client.recv(4)
@@ -32,13 +27,13 @@ class Server:
             message = encrypted_message.decode('utf-8')
             if message.startswith('PUBLIC_KEY_REQUEST:'):
                 # A mensagem é uma solicitação de chave pública
-                sender_nickname = message.split(':', 1)[1]
-                self.send_public_key(client, sender_nickname)
+                nickname_key_requested = message.split(':', 1)[1]
+                self.send_public_key(client, nickname_key_requested)
+                print(f"chave publica enviada para {nickname_client}")
             else:
                 if ':' in message:
                     # A mensagem contém um nome de usuário de destino
                     destination_nickname, message = message.split(':', 1)
-                    print("destination_nickname:" + destination_nickname)
 
                     if destination_nickname in self.public_keys:
 
@@ -56,17 +51,19 @@ class Server:
                     # A mensagem não contém um nome de usuário de destino
                     self.broadcast(client, message.encode('utf-8'))
 
-    def send_public_key(self, client, sender_nickname):
-        if sender_nickname in self.public_keys:
+    def send_public_key(self, client, nickname_key_requested,):
+        if nickname_key_requested in self.public_keys:
             # Enviar a chave pública do remetente ao cliente solicitante
-            public_key_data = self.public_keys[sender_nickname].save_pkcs1()
-            full_message_public_key = f'{sender_nickname}:{public_key_data}'
+            print(f"Enviando chave de {nickname_key_requested}")
+            public_key_data = self.public_keys[nickname_key_requested].save_pkcs1()
+            full_message_public_key = f'{nickname_key_requested}:{public_key_data}'
+            print(f"chave completa: {full_message_public_key}")
 
             public_key_size_data = len(full_message_public_key).to_bytes(4, byteorder='big')
             client.send(public_key_size_data + full_message_public_key.encode('utf-8'))
         else:
             # Remetente não encontrado
-            error_message = f'ERROR: Usuário {sender_nickname} não encontrado'
+            error_message = f'ERROR: Usuário {nickname_key_requested} não encontrado'
             client.send(error_message.encode('utf-8'))
 
     def receive_public_key(self, client):
@@ -93,7 +90,7 @@ class Server:
             nickname = self.receive_public_key(client)
             self.clients.append(client)
             print(f'Nickname do cliente: {nickname}')
-            thread = threading.Thread(target=self.handle_client, args=(client,))
+            thread = threading.Thread(target=self.handle_client, args=(client, nickname))
             thread.start()
 
 
