@@ -29,7 +29,7 @@ class Server:
                 # A mensagem é uma solicitação de chave pública
                 nickname_key_requested = message.split(':', 1)[1]
                 self.send_public_key(client, nickname_key_requested)
-                print(f"chave publica enviada para {nickname_client}")
+                print(f"Solicitando chave publica de {nickname_client}")
             else:
                 if ':' in message:
                     # A mensagem contém um nome de usuário de destino
@@ -40,6 +40,7 @@ class Server:
                         # Enviar o tamanho da mensagem criptografada em bytes
                         encrypted_message_size_data = len(encrypted_message).to_bytes(4, byteorder='big')
 
+                        
                         # Enviar a mensagem criptografada ao usuário de destino
                         destination_client = self.nicknames[destination_nickname]
                         destination_client.send(encrypted_message_size_data + encrypted_message)
@@ -56,8 +57,7 @@ class Server:
             # Enviar a chave pública do remetente ao cliente solicitante
             print(f"Enviando chave de {nickname_key_requested}")
             public_key_data = self.public_keys[nickname_key_requested].save_pkcs1()
-            full_message_public_key = f'{nickname_key_requested}:{public_key_data}'
-            print(f"chave completa: {full_message_public_key}")
+            full_message_public_key = f'{nickname_key_requested}:{public_key_data}'            
 
             public_key_size_data = len(full_message_public_key).to_bytes(4, byteorder='big')
             client.send(public_key_size_data + full_message_public_key.encode('utf-8'))
@@ -79,7 +79,7 @@ class Server:
         nickname = client.recv(1024).decode('utf-8')
         self.public_keys[nickname] = public_key
         self.nicknames[nickname] = client
-        print(f'Chave pública de {nickname} recebida!')
+        print(f'Chave pública de {nickname} recebida e armazenada!')
         return nickname
 
     def start(self):
